@@ -312,7 +312,7 @@ static struct bpf_map *htab_map_alloc(union bpf_attr *attr)
 	int err, i;
 	u64 cost;
 
-	htab = kzalloc(sizeof(*htab), GFP_USER);
+	htab = kzalloc(sizeof(*htab), GFP_USER | __GFP_ACCOUNT);
 	if (!htab)
 		return ERR_PTR(-ENOMEM);
 
@@ -755,7 +755,8 @@ static struct htab_elem *alloc_htab_elem(struct bpf_htab *htab, void *key,
 				l_new = ERR_PTR(-E2BIG);
 				goto dec_count;
 			}
-		l_new = kmalloc_node(htab->elem_size, GFP_ATOMIC | __GFP_NOWARN,
+		l_new = kmalloc_node(htab->elem_size, GFP_ATOMIC |
+				     __GFP_NOWARN | __GFP_ACCOUNT,
 				     htab->map.numa_node);
 		if (!l_new) {
 			l_new = ERR_PTR(-ENOMEM);
