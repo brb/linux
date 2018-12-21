@@ -61,13 +61,15 @@ static inline int stack_map_data_size(struct bpf_map *map)
 		sizeof(struct bpf_stack_build_id) : sizeof(u64);
 }
 
-static int prealloc_elems_and_freelist(struct bpf_stack_map *smap)
+static int prealloc_elems_and_freelist(struct bpf_stack_map *smap,
+				       bool account_mem)
 {
 	u32 elem_size = sizeof(struct stack_map_bucket) + smap->map.value_size;
 	int err;
 
 	smap->elems = bpf_map_area_alloc(elem_size * smap->map.max_entries,
-					 smap->map.numa_node);
+					 smap->map.numa_node,
+					 account_mem);
 	if (!smap->elems)
 		return -ENOMEM;
 
@@ -90,6 +92,7 @@ static struct bpf_map *stack_map_alloc(union bpf_attr *attr)
 	u32 value_size = attr->value_size;
 	struct bpf_stack_map *smap;
 	u64 cost, n_buckets;
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 	int err;
 
 	if (!capable(CAP_SYS_ADMIN))
@@ -119,7 +122,8 @@ static struct bpf_map *stack_map_alloc(union bpf_attr *attr)
 	if (cost >= U32_MAX - PAGE_SIZE)
 		return ERR_PTR(-E2BIG);
 
-	smap = bpf_map_area_alloc(cost, bpf_map_attr_numa_node(attr));
+	smap = bpf_map_area_alloc(cost, bpf_map_attr_numa_node(attr),
+				  account_mem);
 	if (!smap)
 		return ERR_PTR(-ENOMEM);
 
@@ -141,7 +145,7 @@ static struct bpf_map *stack_map_alloc(union bpf_attr *attr)
 	if (err)
 		goto free_smap;
 
-	err = prealloc_elems_and_freelist(smap);
+	err = prealloc_elems_and_freelist(smap, account_mem);
 	if (err)
 		goto put_buffers;
 

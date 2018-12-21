@@ -79,7 +79,8 @@ struct bpf_map {
 	u32 btf_value_type_id;
 	struct btf *btf;
 	bool unpriv_array;
-	/* 55 bytes hole */
+	bool account_mem;
+	/* 54 bytes hole */
 
 	/* The 3rd and 4th cacheline with misc members to avoid false sharing
 	 * particularly with refcounting.
@@ -506,7 +507,7 @@ void bpf_map_put(struct bpf_map *map);
 int bpf_map_precharge_memlock(u32 pages);
 int bpf_map_charge_memlock(struct bpf_map *map, u32 pages);
 void bpf_map_uncharge_memlock(struct bpf_map *map, u32 pages);
-void *bpf_map_area_alloc(size_t size, int numa_node);
+void *bpf_map_area_alloc(size_t size, int numa_node, bool account_mem);
 void bpf_map_area_free(void *base);
 void bpf_map_init_from_attr(struct bpf_map *map, union bpf_attr *attr);
 

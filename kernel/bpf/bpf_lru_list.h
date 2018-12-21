@@ -74,6 +74,7 @@ static inline void bpf_lru_node_set_ref(struct bpf_lru_node *node)
 }
 
 int bpf_lru_init(struct bpf_lru *lru, bool percpu, u32 hash_offset,
+		 bool account_mem,
 		 del_from_htab_func del_from_htab, void *delete_arg);
 void bpf_lru_populate(struct bpf_lru *lru, void *buf, u32 node_offset,
 		      u32 elem_size, u32 nr_elems);

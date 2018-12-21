@@ -131,25 +131,29 @@ static struct bpf_map *find_and_alloc_map(union bpf_attr *attr)
 		return map;
 	map->ops = ops;
 	map->map_type = type;
+	map->account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 	return map;
 }
 
-void *bpf_map_area_alloc(size_t size, int numa_node)
+void *bpf_map_area_alloc(size_t size, int numa_node, bool account_mem)
 {
 	/* We definitely need __GFP_NORETRY, so OOM killer doesn't
 	 * trigger under memory pressure as we really just want to
 	 * fail instead.
 	 */
-	const gfp_t flags = __GFP_NOWARN | __GFP_NORETRY | __GFP_ZERO;
+	gfp_t gfp = __GFP_NOWARN | __GFP_NORETRY | __GFP_ZERO;
 	void *area;
 
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
+
 	if (size <= (PAGE_SIZE << PAGE_ALLOC_COSTLY_ORDER)) {
-		area = kmalloc_node(size, GFP_USER | flags, numa_node);
+		area = kmalloc_node(size, GFP_USER | gfp, numa_node);
 		if (area != NULL)
 			return area;
 	}
 
-	return __vmalloc_node_flags_caller(size, numa_node, GFP_KERNEL | flags,
+	return __vmalloc_node_flags_caller(size, numa_node, GFP_KERNEL | gfp,
 					   __builtin_return_address(0));
 }
 
