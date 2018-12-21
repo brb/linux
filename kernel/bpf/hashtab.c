@@ -23,6 +23,7 @@
 
 #define HTAB_CREATE_FLAG_MASK						\
 	(BPF_F_NO_PREALLOC | BPF_F_NO_COMMON_LRU | BPF_F_NUMA_NODE |	\
+	 BPF_F_ACCOUNT_MEM |						\
 	 BPF_F_RDONLY | BPF_F_WRONLY | BPF_F_ZERO_SEED)
 
 struct bucket {
@@ -139,27 +140,32 @@ static struct htab_elem *prealloc_lru_pop(struct bpf_htab *htab, void *key,
 	return NULL;
 }
 
-static int prealloc_init(struct bpf_htab *htab)
+static int prealloc_init(struct bpf_htab *htab, bool account_mem)
 {
 	u32 num_entries = htab->map.max_entries;
+	gfp_t gfp = GFP_USER | __GFP_NOWARN;
 	int err = -ENOMEM, i;
 
 	if (!htab_is_percpu(htab) && !htab_is_lru(htab))
 		num_entries += num_possible_cpus();
 
 	htab->elems = bpf_map_area_alloc(htab->elem_size * num_entries,
-					 htab->map.numa_node);
+					 htab->map.numa_node,
+					 account_mem);
 	if (!htab->elems)
 		return -ENOMEM;
 
 	if (!htab_is_percpu(htab))
 		goto skip_percpu_elems;
 
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
+
 	for (i = 0; i < num_entries; i++) {
 		u32 size = round_up(htab->map.value_size, 8);
 		void __percpu *pptr;
 
-		pptr = __alloc_percpu_gfp(size, 8, GFP_USER | __GFP_NOWARN);
+		pptr = __alloc_percpu_gfp(size, 8, gfp);
 		if (!pptr)
 			goto free_elems;
 		htab_elem_set_ptr(get_htab_elem(htab, i), htab->map.key_size,
@@ -173,6 +179,7 @@ skip_percpu_elems:
 				   htab->map.map_flags & BPF_F_NO_COMMON_LRU,
 				   offsetof(struct htab_elem, hash) -
 				   offsetof(struct htab_elem, lru_node),
+				   account_mem,
 				   htab_lru_map_delete_node,
 				   htab);
 	else
@@ -313,6 +320,7 @@ static struct bpf_map *htab_map_alloc(union bpf_attr *attr)
 	 */
 	bool percpu_lru = (attr->map_flags & BPF_F_NO_COMMON_LRU);
 	bool prealloc = !(attr->map_flags & BPF_F_NO_PREALLOC);
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 	struct bpf_htab *htab;
 	int err, i;
 	u64 cost;
@@ -374,7 +382,8 @@ static struct bpf_map *htab_map_alloc(union bpf_attr *attr)
 	err = -ENOMEM;
 	htab->buckets = bpf_map_area_alloc(htab->n_buckets *
 					   sizeof(struct bucket),
-					   htab->map.numa_node);
+					   htab->map.numa_node,
+					   account_mem);
 	if (!htab->buckets)
 		goto free_htab;
 
@@ -389,7 +398,7 @@ static struct bpf_map *htab_map_alloc(union bpf_attr *attr)
 	}
 
 	if (prealloc) {
-		err = prealloc_init(htab);
+		err = prealloc_init(htab, account_mem);
 		if (err)
 			goto free_buckets;
 

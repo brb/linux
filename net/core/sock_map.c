@@ -18,13 +18,15 @@ struct bpf_stab {
 	raw_spinlock_t lock;
 };
 
-#define SOCK_CREATE_FLAG_MASK				\
-	(BPF_F_NUMA_NODE | BPF_F_RDONLY | BPF_F_WRONLY)
+#define SOCK_CREATE_FLAG_MASK					\
+	(BPF_F_NUMA_NODE | BPF_F_RDONLY | BPF_F_WRONLY |	\
+	 BPF_F_ACCOUNT_MEM)
 
 static struct bpf_map *sock_map_alloc(union bpf_attr *attr)
 {
 	struct bpf_stab *stab;
 	u64 cost;
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 	int err;
 
 	if (!capable(CAP_NET_ADMIN))
@@ -56,7 +58,8 @@ static struct bpf_map *sock_map_alloc(union bpf_attr *attr)
 
 	stab->sks = bpf_map_area_alloc(stab->map.max_entries *
 				       sizeof(struct sock *),
-				       stab->map.numa_node);
+				       stab->map.numa_node,
+				       account_mem);
 	if (stab->sks)
 		return &stab->map;
 	err = -ENOMEM;
@@ -788,6 +791,7 @@ static struct bpf_map *sock_hash_alloc(union bpf_attr *attr)
 	struct bpf_htab *htab;
 	int i, err;
 	u64 cost;
+	bool account = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 
 	if (!capable(CAP_NET_ADMIN))
 		return ERR_PTR(-EPERM);
@@ -823,7 +827,8 @@ static struct bpf_map *sock_hash_alloc(union bpf_attr *attr)
 
 	htab->buckets = bpf_map_area_alloc(htab->buckets_num *
 					   sizeof(struct bpf_htab_bucket),
-					   htab->map.numa_node);
+					   htab->map.numa_node,
+					   account);
 	if (!htab->buckets) {
 		err = -ENOMEM;
 		goto free_htab;

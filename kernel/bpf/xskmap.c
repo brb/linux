@@ -20,6 +20,8 @@ static struct bpf_map *xsk_map_alloc(union bpf_attr *attr)
 	int cpu, err = -EINVAL;
 	struct xsk_map *m;
 	u64 cost;
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
+	gfp_t gfp = GFP_KERNEL;
 
 	if (!capable(CAP_NET_ADMIN))
 		return ERR_PTR(-EPERM);
@@ -49,7 +51,9 @@ static struct bpf_map *xsk_map_alloc(union bpf_attr *attr)
 
 	err = -ENOMEM;
 
-	m->flush_list = alloc_percpu(struct list_head);
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
+	m->flush_list = alloc_percpu_gfp(struct list_head, gfp);
 	if (!m->flush_list)
 		goto free_m;
 
@@ -58,7 +62,8 @@ static struct bpf_map *xsk_map_alloc(union bpf_attr *attr)
 
 	m->xsk_map = bpf_map_area_alloc(m->map.max_entries *
 					sizeof(struct xdp_sock *),
-					m->map.numa_node);
+					m->map.numa_node,
+					account_mem);
 	if (!m->xsk_map)
 		goto free_percpu;
 	return &m->map;

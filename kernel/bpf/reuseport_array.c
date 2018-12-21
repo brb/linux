@@ -152,6 +152,7 @@ static struct bpf_map *reuseport_array_alloc(union bpf_attr *attr)
 	int err, numa_node = bpf_map_attr_numa_node(attr);
 	struct reuseport_array *array;
 	u64 cost, array_size;
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 
 	if (!capable(CAP_SYS_ADMIN))
 		return ERR_PTR(-EPERM);
@@ -170,7 +171,7 @@ static struct bpf_map *reuseport_array_alloc(union bpf_attr *attr)
 		return ERR_PTR(err);
 
 	/* allocate all map elements and zero-initialize them */
-	array = bpf_map_area_alloc(array_size, numa_node);
+	array = bpf_map_area_alloc(array_size, numa_node, account_mem);
 	if (!array)
 		return ERR_PTR(-ENOMEM);
 

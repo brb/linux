@@ -34,14 +34,17 @@ static void bpf_array_free_percpu(struct bpf_array *array)
 	}
 }
 
-static int bpf_array_alloc_percpu(struct bpf_array *array)
+static int bpf_array_alloc_percpu(struct bpf_array *array, bool account_mem)
 {
 	void __percpu *ptr;
+	gfp_t gfp = GFP_USER | __GFP_NOWARN;
 	int i;
 
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
+
 	for (i = 0; i < array->map.max_entries; i++) {
-		ptr = __alloc_percpu_gfp(array->elem_size, 8,
-					 GFP_USER | __GFP_NOWARN);
+		ptr = __alloc_percpu_gfp(array->elem_size, 8, gfp);
 		if (!ptr) {
 			bpf_array_free_percpu(array);
 			return -ENOMEM;
@@ -82,6 +85,7 @@ static struct bpf_map *array_map_alloc(union bpf_attr *attr)
 	u32 elem_size, index_mask, max_entries;
 	bool unpriv = !capable(CAP_SYS_ADMIN);
 	u64 cost, array_size, mask64;
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 	struct bpf_array *array;
 
 	elem_size = round_up(attr->value_size, 8);
@@ -129,7 +133,7 @@ static struct bpf_map *array_map_alloc(union bpf_attr *attr)
 		return ERR_PTR(ret);
 
 	/* allocate all map elements and zero-initialize them */
-	array = bpf_map_area_alloc(array_size, numa_node);
+	array = bpf_map_area_alloc(array_size, numa_node, account_mem);
 	if (!array)
 		return ERR_PTR(-ENOMEM);
 	array->index_mask = index_mask;
@@ -140,7 +144,7 @@ static struct bpf_map *array_map_alloc(union bpf_attr *attr)
 	array->map.pages = cost;
 	array->elem_size = elem_size;
 
-	if (percpu && bpf_array_alloc_percpu(array)) {
+	if (percpu && bpf_array_alloc_percpu(array, account_mem)) {
 		bpf_map_area_free(array);
 		return ERR_PTR(-ENOMEM);
 	}

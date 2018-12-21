@@ -90,6 +90,8 @@ static struct bpf_map *dev_map_alloc(union bpf_attr *attr)
 	struct bpf_dtab *dtab;
 	int err = -EINVAL;
 	u64 cost;
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
+	gfp_t gfp;
 
 	if (!capable(CAP_NET_ADMIN))
 		return ERR_PTR(-EPERM);
@@ -120,16 +122,20 @@ static struct bpf_map *dev_map_alloc(union bpf_attr *attr)
 
 	err = -ENOMEM;
 
+	gfp = GFP_KERNEL | __GFP_NOWARN;
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
 	/* A per cpu bitfield with a bit per possible net device */
 	dtab->flush_needed = __alloc_percpu_gfp(dev_map_bitmap_size(attr),
 						__alignof__(unsigned long),
-						GFP_KERNEL | __GFP_NOWARN);
+						gfp);
 	if (!dtab->flush_needed)
 		goto free_dtab;
 
 	dtab->netdev_map = bpf_map_area_alloc(dtab->map.max_entries *
 					      sizeof(struct bpf_dtab_netdev *),
-					      dtab->map.numa_node);
+					      dtab->map.numa_node,
+					      account_mem);
 	if (!dtab->netdev_map)
 		goto free_dtab;
 
