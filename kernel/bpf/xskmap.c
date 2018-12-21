@@ -20,6 +20,7 @@ static struct bpf_map *xsk_map_alloc(union bpf_attr *attr)
 	int cpu, err = -EINVAL;
 	struct xsk_map *m;
 	u64 cost;
+	bool account = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 
 	if (!capable(CAP_NET_ADMIN))
 		return ERR_PTR(-EPERM);
@@ -58,7 +59,8 @@ static struct bpf_map *xsk_map_alloc(union bpf_attr *attr)
 
 	m->xsk_map = bpf_map_area_alloc(m->map.max_entries *
 					sizeof(struct xdp_sock *),
-					m->map.numa_node);
+					m->map.numa_node,
+					account);
 	if (!m->xsk_map)
 		goto free_percpu;
 	return &m->map;

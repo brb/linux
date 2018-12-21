@@ -83,6 +83,7 @@ static struct bpf_map *array_map_alloc(union bpf_attr *attr)
 	bool unpriv = !capable(CAP_SYS_ADMIN);
 	u64 cost, array_size, mask64;
 	struct bpf_array *array;
+	bool account = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 
 	elem_size = round_up(attr->value_size, 8);
 
@@ -129,7 +130,7 @@ static struct bpf_map *array_map_alloc(union bpf_attr *attr)
 		return ERR_PTR(ret);
 
 	/* allocate all map elements and zero-initialize them */
-	array = bpf_map_area_alloc(array_size, numa_node);
+	array = bpf_map_area_alloc(array_size, numa_node, account);
 	if (!array)
 		return ERR_PTR(-ENOMEM);
 	array->index_mask = index_mask;
@@ -140,6 +141,7 @@ static struct bpf_map *array_map_alloc(union bpf_attr *attr)
 	array->map.pages = cost;
 	array->elem_size = elem_size;
 
+	// TODO(brb) account
 	if (percpu && bpf_array_alloc_percpu(array)) {
 		bpf_map_area_free(array);
 		return ERR_PTR(-ENOMEM);

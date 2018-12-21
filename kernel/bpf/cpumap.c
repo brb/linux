@@ -82,6 +82,7 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 	int err = -ENOMEM;
 	u64 cost;
 	int ret;
+	bool account = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 
 	if (!capable(CAP_SYS_ADMIN))
 		return ERR_PTR(-EPERM);
@@ -118,6 +119,7 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 	}
 
 	/* A per cpu bitfield with a bit per possible CPU in map  */
+	// TODO(brb) account
 	cmap->flush_needed = __alloc_percpu(cpu_map_bitmap_size(attr),
 					    __alignof__(unsigned long));
 	if (!cmap->flush_needed)
@@ -126,7 +128,8 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 	/* Alloc array for possible remote "destination" CPUs */
 	cmap->cpu_map = bpf_map_area_alloc(cmap->map.max_entries *
 					   sizeof(struct bpf_cpu_map_entry *),
-					   cmap->map.numa_node);
+					   cmap->map.numa_node,
+					   account);
 	if (!cmap->cpu_map)
 		goto free_percpu;
 

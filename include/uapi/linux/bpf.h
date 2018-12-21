@@ -278,6 +278,8 @@ enum bpf_attach_type {
 #define BPF_F_NO_COMMON_LRU	(1U << 1)
 /* Specify numa node during map creation */
 #define BPF_F_NUMA_NODE		(1U << 2)
+/* Enable memory accounting for map */
+#define BPF_F_ACCOUNT_MEM	(1U << 6)
 
 #define BPF_OBJ_NAME_LEN 16U
 

@@ -651,6 +651,7 @@ int bpf_lru_init(struct bpf_lru *lru, bool percpu, u32 hash_offset,
 	int cpu;
 
 	if (percpu) {
+		// TODO(brb) alloc_percpu_gfp
 		lru->percpu_lru = alloc_percpu(struct bpf_lru_list);
 		if (!lru->percpu_lru)
 			return -ENOMEM;
