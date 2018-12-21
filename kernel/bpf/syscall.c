@@ -681,6 +681,7 @@ static int map_lookup_elem(union bpf_attr *attr)
 	u32 value_size;
 	struct fd f;
 	int err;
+	gfp_t flags = GFP_USER | __GFP_NOWARN;
 
 	if (CHECK_ATTR(BPF_MAP_LOOKUP_ELEM))
 		return -EINVAL;
@@ -712,8 +713,11 @@ static int map_lookup_elem(union bpf_attr *attr)
 		value_size = map->value_size;
 
 	err = -ENOMEM;
-	//TODO(brb)
-	value = kmalloc(value_size, GFP_USER | __GFP_NOWARN);
+
+	if (map->account_mem) {
+		flags |= __GFP_ACCOUNT;
+	}
+	value = kmalloc(value_size, flags);
 	if (!value)
 		goto free_key;
 
@@ -792,6 +796,7 @@ static int map_update_elem(union bpf_attr *attr)
 	u32 value_size;
 	struct fd f;
 	int err;
+	gfp_t flags = GFP_USER | __GFP_NOWARN;
 
 	if (CHECK_ATTR(BPF_MAP_UPDATE_ELEM))
 		return -EINVAL;
@@ -821,8 +826,10 @@ static int map_update_elem(union bpf_attr *attr)
 		value_size = map->value_size;
 
 	err = -ENOMEM;
-	//TODO(brb)
-	value = kmalloc(value_size, GFP_USER | __GFP_NOWARN);
+	if (map->account_mem) {
+		flags |= __GFP_ACCOUNT;
+	}
+	value = kmalloc(value_size, flags);
 	if (!value)
 		goto free_key;
 
@@ -951,6 +958,7 @@ static int map_get_next_key(union bpf_attr *attr)
 	void *key, *next_key;
 	struct fd f;
 	int err;
+	gfp_t flags = GFP_USER;
 
 	if (CHECK_ATTR(BPF_MAP_GET_NEXT_KEY))
 		return -EINVAL;
@@ -976,8 +984,10 @@ static int map_get_next_key(union bpf_attr *attr)
 	}
 
 	err = -ENOMEM;
-	//TODO(brb)
-	next_key = kmalloc(map->key_size, GFP_USER);
+	if (map->account_mem) {
+		flags |= __GFP_ACCOUNT;
+	}
+	next_key = kmalloc(map->key_size, flags);
 	if (!next_key)
 		goto free_key;
 
@@ -1020,6 +1030,7 @@ static int map_lookup_and_delete_elem(union bpf_attr *attr)
 	u32 value_size;
 	struct fd f;
 	int err;
+	gfp_t flags = GFP_USER | __GFP_NOWARN;
 
 	if (CHECK_ATTR(BPF_MAP_LOOKUP_AND_DELETE_ELEM))
 		return -EINVAL;
@@ -1043,8 +1054,10 @@ static int map_lookup_and_delete_elem(union bpf_attr *attr)
 	value_size = map->value_size;
 
 	err = -ENOMEM;
-	//TODO(brb)
-	value = kmalloc(value_size, GFP_USER | __GFP_NOWARN);
+	if (map->account_mem) {
+		flags |= __GFP_ACCOUNT;
+	}
+	value = kmalloc(value_size, flags);
 	if (!value)
 		goto free_key;
 
