@@ -131,6 +131,7 @@ static struct bpf_map *find_and_alloc_map(union bpf_attr *attr)
 		return map;
 	map->ops = ops;
 	map->map_type = type;
+	map->account_mem = attr->map_flags & BPF_F_ACCOUNT_MEM;
 	return map;
 }
 
@@ -711,6 +712,7 @@ static int map_lookup_elem(union bpf_attr *attr)
 		value_size = map->value_size;
 
 	err = -ENOMEM;
+	//TODO(brb)
 	value = kmalloc(value_size, GFP_USER | __GFP_NOWARN);
 	if (!value)
 		goto free_key;
@@ -819,6 +821,7 @@ static int map_update_elem(union bpf_attr *attr)
 		value_size = map->value_size;
 
 	err = -ENOMEM;
+	//TODO(brb)
 	value = kmalloc(value_size, GFP_USER | __GFP_NOWARN);
 	if (!value)
 		goto free_key;
@@ -973,6 +976,7 @@ static int map_get_next_key(union bpf_attr *attr)
 	}
 
 	err = -ENOMEM;
+	//TODO(brb)
 	next_key = kmalloc(map->key_size, GFP_USER);
 	if (!next_key)
 		goto free_key;
@@ -1039,6 +1043,7 @@ static int map_lookup_and_delete_elem(union bpf_attr *attr)
 	value_size = map->value_size;
 
 	err = -ENOMEM;
+	//TODO(brb)
 	value = kmalloc(value_size, GFP_USER | __GFP_NOWARN);
 	if (!value)
 		goto free_key;

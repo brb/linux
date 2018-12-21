@@ -79,7 +79,8 @@ struct bpf_map {
 	u32 btf_value_type_id;
 	struct btf *btf;
 	bool unpriv_array;
-	/* 55 bytes hole */
+	bool account_mem;
+	/* 54 bytes hole */
 
 	/* The 3rd and 4th cacheline with misc members to avoid false sharing
 	 * particularly with refcounting.
