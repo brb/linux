@@ -1444,8 +1444,9 @@ int bpf_fd_htab_map_update_elem(struct bpf_map *map, struct file *map_file,
 static struct bpf_map *htab_of_map_alloc(union bpf_attr *attr)
 {
 	struct bpf_map *map, *inner_map_meta;
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 
-	inner_map_meta = bpf_map_meta_alloc(attr->inner_map_fd);
+	inner_map_meta = bpf_map_meta_alloc(attr->inner_map_fd, account_mem);
 	if (IS_ERR(inner_map_meta))
 		return inner_map_meta;
 

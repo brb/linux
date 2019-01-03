@@ -91,6 +91,7 @@ static struct bpf_map *dev_map_alloc(union bpf_attr *attr)
 	int err = -EINVAL;
 	u64 cost;
 	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
+	gfp_t gfp;
 
 	if (!capable(CAP_NET_ADMIN))
 		return ERR_PTR(-EPERM);
@@ -100,8 +101,10 @@ static struct bpf_map *dev_map_alloc(union bpf_attr *attr)
 	    attr->value_size != 4 || attr->map_flags & ~DEV_CREATE_FLAG_MASK)
 		return ERR_PTR(-EINVAL);
 
-	// TODO(brb)
-	dtab = kzalloc(sizeof(*dtab), GFP_USER);
+	gfp = GFP_USER;
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
+	dtab = kzalloc(sizeof(*dtab), gfp);
 	if (!dtab)
 		return ERR_PTR(-ENOMEM);
 
@@ -122,11 +125,13 @@ static struct bpf_map *dev_map_alloc(union bpf_attr *attr)
 
 	err = -ENOMEM;
 
+	gfp = GFP_KERNEL | __GFP_NOWARN;
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
 	/* A per cpu bitfield with a bit per possible net device */
-	// TODO(brb)
 	dtab->flush_needed = __alloc_percpu_gfp(dev_map_bitmap_size(attr),
 						__alignof__(unsigned long),
-						GFP_KERNEL | __GFP_NOWARN);
+						gfp);
 	if (!dtab->flush_needed)
 		goto free_dtab;
 
@@ -443,6 +448,10 @@ static int dev_map_update_elem(struct bpf_map *map, void *key, void *value,
 	u32 i = *(u32 *)key;
 	u32 ifindex = *(u32 *)value;
 
+	if (map->account_mem) {
+		gfp |= __GFP_ACCOUNT;
+	}
+
 	if (unlikely(map_flags > BPF_EXIST))
 		return -EINVAL;
 	if (unlikely(i >= dtab->map.max_entries))
@@ -453,12 +462,10 @@ static int dev_map_update_elem(struct bpf_map *map, void *key, void *value,
 	if (!ifindex) {
 		dev = NULL;
 	} else {
-		// TODO(brb)
 		dev = kmalloc_node(sizeof(*dev), gfp, map->numa_node);
 		if (!dev)
 			return -ENOMEM;
 
-		// TODO(brb)
 		dev->bulkq = __alloc_percpu_gfp(sizeof(*dev->bulkq),
 						sizeof(void *), gfp);
 		if (!dev->bulkq) {

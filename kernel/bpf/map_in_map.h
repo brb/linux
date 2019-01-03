@@ -12,7 +12,7 @@
 struct file;
 struct bpf_map;
 
-struct bpf_map *bpf_map_meta_alloc(int inner_map_ufd);
+struct bpf_map *bpf_map_meta_alloc(int inner_map_ufd, bool account_mem);
 void bpf_map_meta_free(struct bpf_map *map_meta);
 bool bpf_map_meta_equal(const struct bpf_map *meta0,
 			const struct bpf_map *meta1);

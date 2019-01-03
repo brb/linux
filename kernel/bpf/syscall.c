@@ -243,10 +243,13 @@ void bpf_map_uncharge_memlock(struct bpf_map *map, u32 pages)
 static int bpf_map_alloc_id(struct bpf_map *map)
 {
 	int id;
+	gfp_t gfp = GFP_KERNEL;
 
-	idr_preload(GFP_KERNEL);
+	if (map->account_mem)
+		gfp |= __GFP_ACCOUNT;
+	idr_preload(gfp);
 	spin_lock_bh(&map_idr_lock);
-	// TODO(brb)
+	// TODO(brb) sha
 	id = idr_alloc_cyclic(&map_idr, map, 1, INT_MAX, GFP_ATOMIC);
 	if (id > 0)
 		map->id = id;

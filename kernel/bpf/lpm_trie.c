@@ -277,17 +277,19 @@ static void *trie_lookup_elem(struct bpf_map *map, void *_key)
 }
 
 static struct lpm_trie_node *lpm_trie_node_alloc(const struct lpm_trie *trie,
-						 const void *value)
+						 const void *value,
+						 bool account_mem)
 {
 	struct lpm_trie_node *node;
 	size_t size = sizeof(struct lpm_trie_node) + trie->data_size;
+	gfp_t gfp = GFP_ATOMIC | __GFP_NOWARN;
 
 	if (value)
 		size += trie->map.value_size;
 
-	// TODO(brb)
-	node = kmalloc_node(size, GFP_ATOMIC | __GFP_NOWARN,
-			    trie->map.numa_node);
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
+	node = kmalloc_node(size, gfp, trie->map.numa_node);
 	if (!node)
 		return NULL;
 
@@ -328,7 +330,7 @@ static int trie_update_elem(struct bpf_map *map,
 		goto out;
 	}
 
-	new_node = lpm_trie_node_alloc(trie, value);
+	new_node = lpm_trie_node_alloc(trie, value, map->account_mem);
 	if (!new_node) {
 		ret = -ENOMEM;
 		goto out;
@@ -395,7 +397,7 @@ static int trie_update_elem(struct bpf_map *map,
 		goto out;
 	}
 
-	im_node = lpm_trie_node_alloc(trie, NULL);
+	im_node = lpm_trie_node_alloc(trie, NULL, map->account_mem);
 	if (!im_node) {
 		ret = -ENOMEM;
 		goto out;
@@ -544,6 +546,8 @@ static struct bpf_map *trie_alloc(union bpf_attr *attr)
 {
 	struct lpm_trie *trie;
 	u64 cost = sizeof(*trie), cost_per_node;
+	bool account_mem = attr->map_flags & BPF_F_ACCOUNT_MEM;
+	gfp_t gfp = GFP_USER | __GFP_NOWARN;
 	int ret;
 
 	if (!capable(CAP_SYS_ADMIN))
@@ -559,8 +563,9 @@ static struct bpf_map *trie_alloc(union bpf_attr *attr)
 	    attr->value_size > LPM_VAL_SIZE_MAX)
 		return ERR_PTR(-EINVAL);
 
-	// TODO(brb)
-	trie = kzalloc(sizeof(*trie), GFP_USER | __GFP_NOWARN);
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
+	trie = kzalloc(sizeof(*trie), gfp);
 	if (!trie)
 		return ERR_PTR(-ENOMEM);
 

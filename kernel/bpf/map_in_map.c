@@ -9,10 +9,11 @@
 
 #include "map_in_map.h"
 
-struct bpf_map *bpf_map_meta_alloc(int inner_map_ufd)
+struct bpf_map *bpf_map_meta_alloc(int inner_map_ufd, bool account_mem)
 {
 	struct bpf_map *inner_map, *inner_map_meta;
 	struct fd f;
+	gfp_t gfp = GFP_USER;
 
 	f = fdget(inner_map_ufd);
 	inner_map = __bpf_map_get(f);
@@ -36,8 +37,10 @@ struct bpf_map *bpf_map_meta_alloc(int inner_map_ufd)
 		return ERR_PTR(-EINVAL);
 	}
 
-	// TODO(brb)
-	inner_map_meta = kzalloc(sizeof(*inner_map_meta), GFP_USER);
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
+
+	inner_map_meta = kzalloc(sizeof(*inner_map_meta), gfp);
 	if (!inner_map_meta) {
 		fdput(f);
 		return ERR_PTR(-ENOMEM);

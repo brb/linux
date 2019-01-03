@@ -83,7 +83,7 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 	u64 cost;
 	int ret;
 	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
-	gfp_t flags = GFP_KERNEL;
+	gfp_t gfp;
 
 		if (!capable(CAP_SYS_ADMIN))
 		return ERR_PTR(-EPERM);
@@ -93,8 +93,10 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 	    attr->value_size != 4 || attr->map_flags & ~BPF_F_NUMA_NODE)
 		return ERR_PTR(-EINVAL);
 
-	// TODO(brb)
-	cmap = kzalloc(sizeof(*cmap), GFP_USER);
+	gfp = GFP_USER;
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
+	cmap = kzalloc(sizeof(*cmap), gfp);
 	if (!cmap)
 		return ERR_PTR(-ENOMEM);
 
@@ -120,13 +122,13 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 		goto free_cmap;
 	}
 
-	if (account_mem) {
-		flags |= __GFP_ACCOUNT;
-	}
+	gfp = GFP_KERNEL;
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
 	/* A per cpu bitfield with a bit per possible CPU in map  */
 	cmap->flush_needed = __alloc_percpu_gfp(cpu_map_bitmap_size(attr),
 						__alignof__(unsigned long),
-						flags);
+						gfp);
 	if (!cmap->flush_needed)
 		goto free_cmap;
 
@@ -308,7 +310,8 @@ static int cpu_map_kthread_run(void *data)
 }
 
 static struct bpf_cpu_map_entry *__cpu_map_entry_alloc(u32 qsize, u32 cpu,
-						       int map_id)
+						       int map_id,
+						       bool account_mem)
 {
 	gfp_t gfp = GFP_KERNEL | __GFP_NOWARN;
 	struct bpf_cpu_map_entry *rcpu;
@@ -317,20 +320,20 @@ static struct bpf_cpu_map_entry *__cpu_map_entry_alloc(u32 qsize, u32 cpu,
 	/* Have map->numa_node, but choose node of redirect target CPU */
 	numa = cpu_to_node(cpu);
 
-	// TODO(brb)
+	if (account_mem)
+		gfp |= __GFP_ACCOUNT;
+
 	rcpu = kzalloc_node(sizeof(*rcpu), gfp, numa);
 	if (!rcpu)
 		return NULL;
 
 	/* Alloc percpu bulkq */
-	// TODO(brb)
 	rcpu->bulkq = __alloc_percpu_gfp(sizeof(*rcpu->bulkq),
 					 sizeof(void *), gfp);
 	if (!rcpu->bulkq)
 		goto free_rcu;
 
 	/* Alloc queue */
-	// TODO(brb)
 	rcpu->queue = kzalloc_node(sizeof(*rcpu->queue), gfp, numa);
 	if (!rcpu->queue)
 		goto free_bulkq;
@@ -466,7 +469,8 @@ static int cpu_map_update_elem(struct bpf_map *map, void *key, void *value,
 		rcpu = NULL; /* Same as deleting */
 	} else {
 		/* Updating qsize cause re-allocation of bpf_cpu_map_entry */
-		rcpu = __cpu_map_entry_alloc(qsize, key_cpu, map->id);
+		rcpu = __cpu_map_entry_alloc(qsize, key_cpu, map->id,
+					     map->account_mem);
 		if (!rcpu)
 			return -ENOMEM;
 	}

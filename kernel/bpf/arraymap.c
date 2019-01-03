@@ -597,12 +597,17 @@ const struct bpf_map_ops prog_array_map_ops = {
 };
 
 static struct bpf_event_entry *bpf_event_entry_gen(struct file *perf_file,
-						   struct file *map_file)
+						   struct file *map_file,
+						   bool account_mem)
 {
 	struct bpf_event_entry *ee;
+	gfp_t gfp = GFP_ATOMIC;
 
-	// TODO(brb)
-	ee = kzalloc(sizeof(*ee), GFP_ATOMIC);
+	if (account_mem) {
+		gfp |= __GFP_ACCOUNT;
+	}
+
+	ee = kzalloc(sizeof(*ee), gfp);
 	if (ee) {
 		ee->event = perf_file->private_data;
 		ee->perf_file = perf_file;
@@ -643,7 +648,7 @@ static void *perf_event_fd_array_get_ptr(struct bpf_map *map,
 	if (perf_event_read_local(event, &value, NULL, NULL) == -EOPNOTSUPP)
 		goto err_out;
 
-	ee = bpf_event_entry_gen(perf_file, map_file);
+	ee = bpf_event_entry_gen(perf_file, map_file, map->account_mem);
 	if (ee)
 		return ee;
 	ee = ERR_PTR(-ENOMEM);
@@ -722,9 +727,9 @@ const struct bpf_map_ops cgroup_array_map_ops = {
 static struct bpf_map *array_of_map_alloc(union bpf_attr *attr)
 {
 	struct bpf_map *map, *inner_map_meta;
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 
-	// TODO(brb)
-	inner_map_meta = bpf_map_meta_alloc(attr->inner_map_fd);
+	inner_map_meta = bpf_map_meta_alloc(attr->inner_map_fd, account_mem);
 	if (IS_ERR(inner_map_meta))
 		return inner_map_meta;
 
