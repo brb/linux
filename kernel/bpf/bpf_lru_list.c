@@ -646,14 +646,14 @@ static void bpf_lru_list_init(struct bpf_lru_list *l)
 	raw_spin_lock_init(&l->lock);
 }
 
-int bpf_lru_init(struct bpf_lru *lru, bool percpu, bool account,
+int bpf_lru_init(struct bpf_lru *lru, bool percpu, bool account_mem,
 		 u32 hash_offset,
 		 del_from_htab_func del_from_htab, void *del_arg)
 {
 	int cpu;
 	gfp_t flags = GFP_KERNEL;
 
-	if (account) {
+	if (account_mem) {
 		flags |= __GFP_ACCOUNT;
 	}
 

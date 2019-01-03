@@ -148,7 +148,7 @@ static int prealloc_init(struct bpf_htab *htab)
 {
 	u32 num_entries = htab->map.max_entries;
 	int err = -ENOMEM, i;
-	bool account = htab_is_account_mem(htab);
+	bool account_mem = htab_is_account_mem(htab);
 	gfp_t flags = GFP_USER | __GFP_NOWARN;
 
 	if (!htab_is_percpu(htab) && !htab_is_lru(htab))
@@ -156,14 +156,14 @@ static int prealloc_init(struct bpf_htab *htab)
 
 	htab->elems = bpf_map_area_alloc(htab->elem_size * num_entries,
 					 htab->map.numa_node,
-					 account);
+					 account_mem);
 	if (!htab->elems)
 		return -ENOMEM;
 
 	if (!htab_is_percpu(htab))
 		goto skip_percpu_elems;
 
-	if (account) {
+	if (account_mem) {
 		flags |= __GFP_ACCOUNT;
 	}
 
@@ -183,7 +183,7 @@ skip_percpu_elems:
 	if (htab_is_lru(htab))
 		err = bpf_lru_init(&htab->lru,
 				   htab->map.map_flags & BPF_F_NO_COMMON_LRU,
-				   account,
+				   account_mem,
 				   offsetof(struct htab_elem, hash) -
 				   offsetof(struct htab_elem, lru_node),
 				   htab_lru_map_delete_node,
@@ -225,10 +225,10 @@ static int alloc_extra_elems(struct bpf_htab *htab)
 	struct htab_elem *__percpu *pptr, *l_new;
 	struct pcpu_freelist_node *l;
 	int cpu;
-	bool account = htab_is_account_mem(htab);
+	bool account_mem = htab_is_account_mem(htab);
 	gfp_t flags = GFP_USER | __GFP_NOWARN;
 
-	if (account) {
+	if (account_mem) {
 		flags |= __GFP_ACCOUNT;
 	}
 
@@ -331,13 +331,13 @@ static struct bpf_map *htab_map_alloc(union bpf_attr *attr)
 	 */
 	bool percpu_lru = (attr->map_flags & BPF_F_NO_COMMON_LRU);
 	bool prealloc = !(attr->map_flags & BPF_F_NO_PREALLOC);
-	bool account = (attr->map_flags & BPF_F_ACCOUNT_MEM);
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 	gfp_t flags = GFP_USER;
 	struct bpf_htab *htab;
 	int err, i;
 	u64 cost;
 
-	if (account) {
+	if (account_mem) {
 		flags |= __GFP_ACCOUNT;
 	}
 
@@ -399,7 +399,7 @@ static struct bpf_map *htab_map_alloc(union bpf_attr *attr)
 	htab->buckets = bpf_map_area_alloc(htab->n_buckets *
 					   sizeof(struct bucket),
 					   htab->map.numa_node,
-					   account);
+					   account_mem);
 	if (!htab->buckets)
 		goto free_htab;
 

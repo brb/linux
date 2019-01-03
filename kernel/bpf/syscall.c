@@ -135,7 +135,7 @@ static struct bpf_map *find_and_alloc_map(union bpf_attr *attr)
 	return map;
 }
 
-void *bpf_map_area_alloc(size_t size, int numa_node, bool account)
+void *bpf_map_area_alloc(size_t size, int numa_node, bool account_mem)
 {
 	/* We definitely need __GFP_NORETRY, so OOM killer doesn't
 	 * trigger under memory pressure as we really just want to
@@ -144,7 +144,7 @@ void *bpf_map_area_alloc(size_t size, int numa_node, bool account)
 	gfp_t flags = __GFP_NOWARN | __GFP_NORETRY | __GFP_ZERO;
 	void *area;
 
-	if (account) {
+	if (account_mem) {
 		flags |= __GFP_ACCOUNT;
 	}
 

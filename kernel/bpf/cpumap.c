@@ -82,7 +82,7 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 	int err = -ENOMEM;
 	u64 cost;
 	int ret;
-	bool account = (attr->map_flags & BPF_F_ACCOUNT_MEM);
+	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
 	gfp_t flags = GFP_KERNEL;
 
 		if (!capable(CAP_SYS_ADMIN))
@@ -119,7 +119,7 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 		goto free_cmap;
 	}
 
-	if (account) {
+	if (account_mem) {
 		flags |= __GFP_ACCOUNT;
 	}
 	/* A per cpu bitfield with a bit per possible CPU in map  */
@@ -133,7 +133,7 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 	cmap->cpu_map = bpf_map_area_alloc(cmap->map.max_entries *
 					   sizeof(struct bpf_cpu_map_entry *),
 					   cmap->map.numa_node,
-					   account);
+					   account_mem);
 	if (!cmap->cpu_map)
 		goto free_percpu;
 
