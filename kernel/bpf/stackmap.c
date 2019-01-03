@@ -61,15 +61,14 @@ static inline int stack_map_data_size(struct bpf_map *map)
 		sizeof(struct bpf_stack_build_id) : sizeof(u64);
 }
 
-static int prealloc_elems_and_freelist(struct bpf_stack_map *smap)
+static int prealloc_elems_and_freelist(struct bpf_stack_map *smap, bool account)
 {
 	u32 elem_size = sizeof(struct stack_map_bucket) + smap->map.value_size;
 	int err;
 
-	//TODO(brb) account
 	smap->elems = bpf_map_area_alloc(elem_size * smap->map.max_entries,
 					 smap->map.numa_node,
-					 false);
+					 account);
 	if (!smap->elems)
 		return -ENOMEM;
 
@@ -144,7 +143,7 @@ static struct bpf_map *stack_map_alloc(union bpf_attr *attr)
 	if (err)
 		goto free_smap;
 
-	err = prealloc_elems_and_freelist(smap);
+	err = prealloc_elems_and_freelist(smap, account);
 	if (err)
 		goto put_buffers;
 

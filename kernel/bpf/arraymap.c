@@ -34,14 +34,18 @@ static void bpf_array_free_percpu(struct bpf_array *array)
 	}
 }
 
-static int bpf_array_alloc_percpu(struct bpf_array *array)
+static int bpf_array_alloc_percpu(struct bpf_array *array, bool account)
 {
 	void __percpu *ptr;
 	int i;
+	gfp_t flags = GFP_USER | __GFP_NOWARN;
+
+	if (account) {
+		flags |= __GFP_ACCOUNT;
+	}
 
 	for (i = 0; i < array->map.max_entries; i++) {
-		ptr = __alloc_percpu_gfp(array->elem_size, 8,
-					 GFP_USER | __GFP_NOWARN);
+		ptr = __alloc_percpu_gfp(array->elem_size, 8, flags);
 		if (!ptr) {
 			bpf_array_free_percpu(array);
 			return -ENOMEM;
@@ -141,8 +145,7 @@ static struct bpf_map *array_map_alloc(union bpf_attr *attr)
 	array->map.pages = cost;
 	array->elem_size = elem_size;
 
-	// TODO(brb) account
-	if (percpu && bpf_array_alloc_percpu(array)) {
+	if (percpu && bpf_array_alloc_percpu(array, account)) {
 		bpf_map_area_free(array);
 		return ERR_PTR(-ENOMEM);
 	}

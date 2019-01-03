@@ -183,6 +183,7 @@ skip_percpu_elems:
 	if (htab_is_lru(htab))
 		err = bpf_lru_init(&htab->lru,
 				   htab->map.map_flags & BPF_F_NO_COMMON_LRU,
+				   account,
 				   offsetof(struct htab_elem, hash) -
 				   offsetof(struct htab_elem, lru_node),
 				   htab_lru_map_delete_node,
