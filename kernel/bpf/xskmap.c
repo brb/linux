@@ -30,6 +30,7 @@ static struct bpf_map *xsk_map_alloc(union bpf_attr *attr)
 	    attr->map_flags & ~(BPF_F_NUMA_NODE | BPF_F_RDONLY | BPF_F_WRONLY))
 		return ERR_PTR(-EINVAL);
 
+	// TODO(brb)
 	m = kzalloc(sizeof(*m), GFP_USER);
 	if (!m)
 		return ERR_PTR(-ENOMEM);
@@ -50,6 +51,7 @@ static struct bpf_map *xsk_map_alloc(union bpf_attr *attr)
 
 	err = -ENOMEM;
 
+	// TODO(brb)
 	m->flush_list = alloc_percpu(struct list_head);
 	if (!m->flush_list)
 		goto free_m;

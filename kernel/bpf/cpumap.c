@@ -93,6 +93,7 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 	    attr->value_size != 4 || attr->map_flags & ~BPF_F_NUMA_NODE)
 		return ERR_PTR(-EINVAL);
 
+	// TODO(brb)
 	cmap = kzalloc(sizeof(*cmap), GFP_USER);
 	if (!cmap)
 		return ERR_PTR(-ENOMEM);
@@ -316,17 +317,20 @@ static struct bpf_cpu_map_entry *__cpu_map_entry_alloc(u32 qsize, u32 cpu,
 	/* Have map->numa_node, but choose node of redirect target CPU */
 	numa = cpu_to_node(cpu);
 
+	// TODO(brb)
 	rcpu = kzalloc_node(sizeof(*rcpu), gfp, numa);
 	if (!rcpu)
 		return NULL;
 
 	/* Alloc percpu bulkq */
+	// TODO(brb)
 	rcpu->bulkq = __alloc_percpu_gfp(sizeof(*rcpu->bulkq),
 					 sizeof(void *), gfp);
 	if (!rcpu->bulkq)
 		goto free_rcu;
 
 	/* Alloc queue */
+	// TODO(brb)
 	rcpu->queue = kzalloc_node(sizeof(*rcpu->queue), gfp, numa);
 	if (!rcpu->queue)
 		goto free_bulkq;

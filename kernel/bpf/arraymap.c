@@ -601,6 +601,7 @@ static struct bpf_event_entry *bpf_event_entry_gen(struct file *perf_file,
 {
 	struct bpf_event_entry *ee;
 
+	// TODO(brb)
 	ee = kzalloc(sizeof(*ee), GFP_ATOMIC);
 	if (ee) {
 		ee->event = perf_file->private_data;
@@ -722,6 +723,7 @@ static struct bpf_map *array_of_map_alloc(union bpf_attr *attr)
 {
 	struct bpf_map *map, *inner_map_meta;
 
+	// TODO(brb)
 	inner_map_meta = bpf_map_meta_alloc(attr->inner_map_fd);
 	if (IS_ERR(inner_map_meta))
 		return inner_map_meta;

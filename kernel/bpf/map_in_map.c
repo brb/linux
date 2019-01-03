@@ -36,6 +36,7 @@ struct bpf_map *bpf_map_meta_alloc(int inner_map_ufd)
 		return ERR_PTR(-EINVAL);
 	}
 
+	// TODO(brb)
 	inner_map_meta = kzalloc(sizeof(*inner_map_meta), GFP_USER);
 	if (!inner_map_meta) {
 		fdput(f);

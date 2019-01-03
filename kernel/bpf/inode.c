@@ -177,10 +177,12 @@ static struct map_iter *map_iter_alloc(struct bpf_map *map)
 {
 	struct map_iter *iter;
 
+	// TODO(brb)
 	iter = kzalloc(sizeof(*iter), GFP_KERNEL | __GFP_NOWARN);
 	if (!iter)
 		goto error;
 
+	// TODO(brb)
 	iter->key = kzalloc(map->key_size, GFP_KERNEL | __GFP_NOWARN);
 	if (!iter->key)
 		goto error;

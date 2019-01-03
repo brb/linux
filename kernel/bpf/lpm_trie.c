@@ -285,6 +285,7 @@ static struct lpm_trie_node *lpm_trie_node_alloc(const struct lpm_trie *trie,
 	if (value)
 		size += trie->map.value_size;
 
+	// TODO(brb)
 	node = kmalloc_node(size, GFP_ATOMIC | __GFP_NOWARN,
 			    trie->map.numa_node);
 	if (!node)
@@ -558,6 +559,7 @@ static struct bpf_map *trie_alloc(union bpf_attr *attr)
 	    attr->value_size > LPM_VAL_SIZE_MAX)
 		return ERR_PTR(-EINVAL);
 
+	// TODO(brb)
 	trie = kzalloc(sizeof(*trie), GFP_USER | __GFP_NOWARN);
 	if (!trie)
 		return ERR_PTR(-ENOMEM);

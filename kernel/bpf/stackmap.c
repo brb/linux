@@ -122,7 +122,8 @@ static struct bpf_map *stack_map_alloc(union bpf_attr *attr)
 	if (cost >= U32_MAX - PAGE_SIZE)
 		return ERR_PTR(-E2BIG);
 
-	smap = bpf_map_area_alloc(cost, bpf_map_attr_numa_node(attr), account_mem);
+	smap = bpf_map_area_alloc(cost, bpf_map_attr_numa_node(attr),
+				  account_mem);
 	if (!smap)
 		return ERR_PTR(-ENOMEM);
 

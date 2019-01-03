@@ -246,6 +246,7 @@ static int bpf_map_alloc_id(struct bpf_map *map)
 
 	idr_preload(GFP_KERNEL);
 	spin_lock_bh(&map_idr_lock);
+	// TODO(brb)
 	id = idr_alloc_cyclic(&map_idr, map, 1, INT_MAX, GFP_ATOMIC);
 	if (id > 0)
 		map->id = id;

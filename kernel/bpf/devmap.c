@@ -100,6 +100,7 @@ static struct bpf_map *dev_map_alloc(union bpf_attr *attr)
 	    attr->value_size != 4 || attr->map_flags & ~DEV_CREATE_FLAG_MASK)
 		return ERR_PTR(-EINVAL);
 
+	// TODO(brb)
 	dtab = kzalloc(sizeof(*dtab), GFP_USER);
 	if (!dtab)
 		return ERR_PTR(-ENOMEM);
@@ -122,6 +123,7 @@ static struct bpf_map *dev_map_alloc(union bpf_attr *attr)
 	err = -ENOMEM;
 
 	/* A per cpu bitfield with a bit per possible net device */
+	// TODO(brb)
 	dtab->flush_needed = __alloc_percpu_gfp(dev_map_bitmap_size(attr),
 						__alignof__(unsigned long),
 						GFP_KERNEL | __GFP_NOWARN);
@@ -451,10 +453,12 @@ static int dev_map_update_elem(struct bpf_map *map, void *key, void *value,
 	if (!ifindex) {
 		dev = NULL;
 	} else {
+		// TODO(brb)
 		dev = kmalloc_node(sizeof(*dev), gfp, map->numa_node);
 		if (!dev)
 			return -ENOMEM;
 
+		// TODO(brb)
 		dev->bulkq = __alloc_percpu_gfp(sizeof(*dev->bulkq),
 						sizeof(void *), gfp);
 		if (!dev->bulkq) {
