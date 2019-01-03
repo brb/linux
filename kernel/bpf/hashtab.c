@@ -931,7 +931,6 @@ static int htab_lru_map_update_elem(struct bpf_map *map, void *key, void *value,
 	 * to remove older elements from htab and this removal
 	 * operation will need a bucket lock.
 	 */
-	//TODO(brb) double check
 	l_new = prealloc_lru_pop(htab, key, hash);
 	if (!l_new)
 		return -ENOMEM;
