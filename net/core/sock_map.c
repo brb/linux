@@ -630,6 +630,7 @@ static struct bpf_htab_elem *sock_hash_alloc_elem(struct bpf_htab *htab,
 						  struct bpf_htab_elem *old)
 {
 	struct bpf_htab_elem *new;
+	gfp_t flags = GFP_ATOMIC | __GFP_NOWARN;
 
 	if (atomic_inc_return(&htab->count) > htab->map.max_entries) {
 		if (!old) {
@@ -638,9 +639,10 @@ static struct bpf_htab_elem *sock_hash_alloc_elem(struct bpf_htab *htab,
 		}
 	}
 
-	// TODO(brb) missed
-	new = kmalloc_node(htab->elem_size, GFP_ATOMIC | __GFP_NOWARN,
-			   htab->map.numa_node);
+	if (htab->map.account_mem) {
+		flags |= __GFP_ACCOUNT;
+	}
+	new = kmalloc_node(htab->elem_size, flags, htab->map.numa_node);
 	if (!new) {
 		atomic_dec(&htab->count);
 		return ERR_PTR(-ENOMEM);
@@ -792,6 +794,7 @@ static struct bpf_map *sock_hash_alloc(union bpf_attr *attr)
 	int i, err;
 	u64 cost;
 	bool account_mem = (attr->map_flags & BPF_F_ACCOUNT_MEM);
+	gfp_t flags = GFP_USER;
 
 	if (!capable(CAP_NET_ADMIN))
 		return ERR_PTR(-EPERM);
@@ -803,8 +806,10 @@ static struct bpf_map *sock_hash_alloc(union bpf_attr *attr)
 	if (attr->key_size > MAX_BPF_STACK)
 		return ERR_PTR(-E2BIG);
 
-	// TODO(brb)
-	htab = kzalloc(sizeof(*htab), GFP_USER);
+	if (account_mem) {
+		flags |= __GFP_ACCOUNT;
+	}
+	htab = kzalloc(sizeof(*htab), flags);
 	if (!htab)
 		return ERR_PTR(-ENOMEM);
 
