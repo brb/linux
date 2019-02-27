@@ -159,7 +159,9 @@ static int prealloc_init(struct bpf_htab *htab)
 		u32 size = round_up(htab->map.value_size, 8);
 		void __percpu *pptr;
 
-		pptr = __alloc_percpu_gfp(size, 8, GFP_USER | __GFP_NOWARN);
+		pptr = __alloc_percpu_gfp(size, 8,
+					GFP_USER | __GFP_NOWARN |
+					__GFP_ACCOUNT);
 		if (!pptr)
 			goto free_elems;
 		htab_elem_set_ptr(get_htab_elem(htab, i), htab->map.key_size,

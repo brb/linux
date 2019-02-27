@@ -81,6 +81,7 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 	struct bpf_cpu_map *cmap;
 	int err = -ENOMEM;
 	u64 cost;
+	gfp_t gfp = GFP_KERNEL | __GFP_ACCOUNT;
 	int ret;
 
 	if (!capable(CAP_SYS_ADMIN))
@@ -118,8 +119,9 @@ static struct bpf_map *cpu_map_alloc(union bpf_attr *attr)
 	}
 
 	/* A per cpu bitfield with a bit per possible CPU in map  */
-	cmap->flush_needed = __alloc_percpu(cpu_map_bitmap_size(attr),
-					    __alignof__(unsigned long));
+	cmap->flush_needed = __alloc_percpu_gfp(cpu_map_bitmap_size(attr),
+					    __alignof__(unsigned long),
+					    gfp);
 	if (!cmap->flush_needed)
 		goto free_cmap;
 

@@ -20,6 +20,7 @@ static struct bpf_map *xsk_map_alloc(union bpf_attr *attr)
 	int cpu, err = -EINVAL;
 	struct xsk_map *m;
 	u64 cost;
+	const gfp_t gfp = GFP_KERNEL | __GFP_ACCOUNT;
 
 	if (!capable(CAP_NET_ADMIN))
 		return ERR_PTR(-EPERM);
@@ -49,7 +50,7 @@ static struct bpf_map *xsk_map_alloc(union bpf_attr *attr)
 
 	err = -ENOMEM;
 
-	m->flush_list = alloc_percpu(struct list_head);
+	m->flush_list = alloc_percpu_gfp(struct list_head, gfp);
 	if (!m->flush_list)
 		goto free_m;
 

@@ -37,11 +37,11 @@ static void bpf_array_free_percpu(struct bpf_array *array)
 static int bpf_array_alloc_percpu(struct bpf_array *array)
 {
 	void __percpu *ptr;
+	gfp_t gfp = GFP_USER | __GFP_NOWARN | __GFP_ACCOUNT;
 	int i;
 
 	for (i = 0; i < array->map.max_entries; i++) {
-		ptr = __alloc_percpu_gfp(array->elem_size, 8,
-					 GFP_USER | __GFP_NOWARN);
+		ptr = __alloc_percpu_gfp(array->elem_size, 8, gfp);
 		if (!ptr) {
 			bpf_array_free_percpu(array);
 			return -ENOMEM;

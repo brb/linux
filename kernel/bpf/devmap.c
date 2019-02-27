@@ -123,7 +123,8 @@ static struct bpf_map *dev_map_alloc(union bpf_attr *attr)
 	/* A per cpu bitfield with a bit per possible net device */
 	dtab->flush_needed = __alloc_percpu_gfp(dev_map_bitmap_size(attr),
 						__alignof__(unsigned long),
-						GFP_KERNEL | __GFP_NOWARN);
+						GFP_KERNEL | __GFP_NOWARN |
+						__GFP_ACCOUNT);
 	if (!dtab->flush_needed)
 		goto free_dtab;
 

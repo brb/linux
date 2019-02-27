@@ -18,7 +18,7 @@ struct bpf_stab {
 	raw_spinlock_t lock;
 };
 
-#define SOCK_CREATE_FLAG_MASK				\
+#define SOCK_CREATE_FLAG_MASK					\
 	(BPF_F_NUMA_NODE | BPF_F_RDONLY | BPF_F_WRONLY)
 
 static struct bpf_map *sock_map_alloc(union bpf_attr *attr)

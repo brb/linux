@@ -7,6 +7,7 @@
 #include <linux/cpumask.h>
 #include <linux/spinlock.h>
 #include <linux/percpu.h>
+#include <linux/gfp.h>
 
 #include "bpf_lru_list.h"
 
@@ -648,10 +649,11 @@ static void bpf_lru_list_init(struct bpf_lru_list *l)
 int bpf_lru_init(struct bpf_lru *lru, bool percpu, u32 hash_offset,
 		 del_from_htab_func del_from_htab, void *del_arg)
 {
+	gfp_t gfp = GFP_KERNEL | __GFP_ACCOUNT;
 	int cpu;
 
 	if (percpu) {
-		lru->percpu_lru = alloc_percpu(struct bpf_lru_list);
+		lru->percpu_lru = alloc_percpu_gfp(struct bpf_lru_list, gfp);
 		if (!lru->percpu_lru)
 			return -ENOMEM;
 
@@ -665,7 +667,8 @@ int bpf_lru_init(struct bpf_lru *lru, bool percpu, u32 hash_offset,
 	} else {
 		struct bpf_common_lru *clru = &lru->common_lru;
 
-		clru->local_list = alloc_percpu(struct bpf_lru_locallist);
+		clru->local_list = alloc_percpu_gfp(struct bpf_lru_locallist,
+						    gfp);
 		if (!clru->local_list)
 			return -ENOMEM;
 
