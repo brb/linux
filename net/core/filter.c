@@ -5296,21 +5296,25 @@ static int bpf_ipv4_fib_lookup(struct net *net, struct bpf_fib_lookup *params,
 	int err;
 	u32 mtu;
 
-	dev = dev_get_by_index_rcu(net, params->ifindex);
-	if (unlikely(!dev))
-		return -ENODEV;
+	if (unlikely(flags & BPF_FIB_LOOKUP_DIRECT || params->ifindex != 0)) {
+	    dev = dev_get_by_index_rcu(net, params->ifindex);
+	    if (unlikely(!dev))
+	    return -ENODEV;
 
-	/* verify forwarding is enabled on this interface */
-	in_dev = __in_dev_get_rcu(dev);
-	if (unlikely(!in_dev || !IN_DEV_FORWARD(in_dev)))
-		return BPF_FIB_LKUP_RET_FWD_DISABLED;
+	    /* verify forwarding is enabled on this interface */
+	    in_dev = __in_dev_get_rcu(dev);
+	    if (unlikely(!in_dev || !IN_DEV_FORWARD(in_dev)))
+	    return BPF_FIB_LKUP_RET_FWD_DISABLED;
+	}
 
-	if (flags & BPF_FIB_LOOKUP_OUTPUT) {
-		fl4.flowi4_iif = 1;
-		fl4.flowi4_oif = params->ifindex;
-	} else {
-		fl4.flowi4_iif = params->ifindex;
-		fl4.flowi4_oif = 0;
+	if (params->ifindex != 0) {
+		if (flags & BPF_FIB_LOOKUP_OUTPUT) {
+			fl4.flowi4_iif = 1;
+			fl4.flowi4_oif = params->ifindex;
+		} else {
+			fl4.flowi4_iif = params->ifindex;
+			fl4.flowi4_oif = 0;
+		}
 	}
 	fl4.flowi4_tos = params->tos & IPTOS_RT_MASK;
 	fl4.flowi4_scope = RT_SCOPE_UNIVERSE;
