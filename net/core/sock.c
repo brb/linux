@@ -1622,6 +1622,12 @@ int sock_getsockopt(struct socket *sock, int level, int optname,
 		v.val = sk->sk_bound_dev_if;
 		break;
 
+#ifdef CONFIG_NET_NS
+	case SO_NETNS_COOKIE:
+		v.val64 = sock_net(sk)->net_cookie;
+		break;
+#endif
+
 	default:
 		/* We implement the SO_SNDLOWAT etc to not be settable
 		 * (1003.1g 7).
