@@ -5389,22 +5389,28 @@ static int bpf_ipv4_fib_lookup(struct net *net, struct bpf_fib_lookup *params,
 	u32 mtu = 0;
 	int err;
 
-	dev = dev_get_by_index_rcu(net, params->ifindex);
-	if (unlikely(!dev))
+	if ((flags & BPF_FIB_LOOKUP_DIRECT) && params->ifindex == 0)
 		return -ENODEV;
 
-	/* verify forwarding is enabled on this interface */
-	in_dev = __in_dev_get_rcu(dev);
-	if (unlikely(!in_dev || !IN_DEV_FORWARD(in_dev)))
-		return BPF_FIB_LKUP_RET_FWD_DISABLED;
+	if (params->ifindex != 0) {
+		dev = dev_get_by_index_rcu(net, params->ifindex);
+		if (unlikely(!dev))
+			return -ENODEV;
 
-	if (flags & BPF_FIB_LOOKUP_OUTPUT) {
-		fl4.flowi4_iif = 1;
-		fl4.flowi4_oif = params->ifindex;
-	} else {
-		fl4.flowi4_iif = params->ifindex;
-		fl4.flowi4_oif = 0;
+		/* verify forwarding is enabled on this interface */
+		in_dev = __in_dev_get_rcu(dev);
+		if (unlikely(!in_dev || !IN_DEV_FORWARD(in_dev)))
+			return BPF_FIB_LKUP_RET_FWD_DISABLED;
+
+		if (flags & BPF_FIB_LOOKUP_OUTPUT) {
+			fl4.flowi4_iif = 1;
+			fl4.flowi4_oif = params->ifindex;
+		} else {
+			fl4.flowi4_iif = params->ifindex;
+			fl4.flowi4_oif = 0;
+		}
 	}
+
 	fl4.flowi4_tos = params->tos & IPTOS_RT_MASK;
 	fl4.flowi4_scope = RT_SCOPE_UNIVERSE;
 	fl4.flowi4_flags = 0;
@@ -5470,6 +5476,10 @@ static int bpf_ipv4_fib_lookup(struct net *net, struct bpf_fib_lookup *params,
 
 	params->rt_metric = res.fi->fib_priority;
 	params->ifindex = dev->ifindex;
+
+	if (flags & BPF_FIB_LOOKUP_SET_SRC) {
+		params->ipv4_src = fib_result_prefsrc(net, &res);
+	}
 
 	/* xdp and cls_bpf programs are run in RCU-bh so
 	 * rcu_read_lock_bh is not needed here
@@ -5599,6 +5609,10 @@ static int bpf_ipv6_fib_lookup(struct net *net, struct bpf_fib_lookup *params,
 	params->rt_metric = res.f6i->fib6_metric;
 	params->ifindex = dev->ifindex;
 
+	if (flags & BPF_FIB_LOOKUP_SET_SRC) {
+		*(struct in6_addr *)params->ipv6_src = (res.f6i->fib6_src).addr;
+	}
+
 	/* xdp and cls_bpf programs are run in RCU-bh so rcu_read_lock_bh is
 	 * not needed here.
 	 */
@@ -5616,7 +5630,7 @@ BPF_CALL_4(bpf_xdp_fib_lookup, struct xdp_buff *, ctx,
 	if (plen < sizeof(*params))
 		return -EINVAL;
 
-	if (flags & ~(BPF_FIB_LOOKUP_DIRECT | BPF_FIB_LOOKUP_OUTPUT))
+	if (flags & ~(BPF_FIB_LOOKUP_DIRECT | BPF_FIB_LOOKUP_OUTPUT | BPF_FIB_LOOKUP_SET_SRC))
 		return -EINVAL;
 
 	switch (params->family) {
@@ -5654,7 +5668,7 @@ BPF_CALL_4(bpf_skb_fib_lookup, struct sk_buff *, skb,
 	if (plen < sizeof(*params))
 		return -EINVAL;
 
-	if (flags & ~(BPF_FIB_LOOKUP_DIRECT | BPF_FIB_LOOKUP_OUTPUT))
+	if (flags & ~(BPF_FIB_LOOKUP_DIRECT | BPF_FIB_LOOKUP_OUTPUT | BPF_FIB_LOOKUP_SET_SRC))
 		return -EINVAL;
 
 	if (params->tot_len)
