@@ -5471,6 +5471,10 @@ static int bpf_ipv4_fib_lookup(struct net *net, struct bpf_fib_lookup *params,
 	params->rt_metric = res.fi->fib_priority;
 	params->ifindex = dev->ifindex;
 
+	if (flags & BPF_FIB_LOOKUP_SET_SRC) {
+		params->ipv4_src = fib_result_prefsrc(net, &res);
+	}
+
 	/* xdp and cls_bpf programs are run in RCU-bh so
 	 * rcu_read_lock_bh is not needed here
 	 */
@@ -5598,6 +5602,10 @@ static int bpf_ipv6_fib_lookup(struct net *net, struct bpf_fib_lookup *params,
 	dev = res.nh->fib_nh_dev;
 	params->rt_metric = res.f6i->fib6_metric;
 	params->ifindex = dev->ifindex;
+
+	if (flags & BPF_FIB_LOOKUP_SET_SRC) {
+		*(struct in6_addr *)params->ipv6_src = (res.f6i->fib6_src).addr;
+	}
 
 	/* xdp and cls_bpf programs are run in RCU-bh so rcu_read_lock_bh is
 	 * not needed here.
